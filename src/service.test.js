@@ -7,4 +7,5 @@ test('blankServiceTest', () => {
 
 test('getReqNoErr', async () => {
     const response = await request(app).get('/');
+    expect(response).not.toBeNull();
 });

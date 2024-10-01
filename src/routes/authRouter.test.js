@@ -1,5 +1,5 @@
-const {authRouter, setAuthUser} = require('./authRouter');
+// const {authRouter, setAuthUser} = require('./authRouter');
 
 test('blankAuthRouterTest', () => {
-
+// 
 });
