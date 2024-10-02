@@ -6,7 +6,8 @@
   "scripts": {
     "start": "cd src && node index.js",
     "lint": "eslint .",
-    "test": "jest"
+    "test": "jest",
+    "testOpen": "jest --detectOpenHandles"
   },
   "license": "MIT",
   "dependencies": {
