@@ -6,7 +6,7 @@ const { Role } = require('../model/model.js');
 const dbModel = require('./dbModel.js');
 class DB {
   constructor() {
-    this.initialized = this.initializeDatabase();
+    this.initialized = this.initializeDatabase(); //TODO: Should this be awaited for?
   }
 
   async getMenu() {

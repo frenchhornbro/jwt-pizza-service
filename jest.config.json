@@ -1,5 +1,6 @@
 {
     "collectCoverage": true,
+    "coverageReporters": ["json-summary", "text"],
     "verbose": true,
     "coverageThreshold": {
         "global": {
