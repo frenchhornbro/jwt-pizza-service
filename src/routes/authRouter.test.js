@@ -1,4 +1,3 @@
-// const {authRouter, setAuthUser} = require('./authRouter');
 
 const request = require('supertest');
 const app = require('../service');
@@ -12,11 +11,41 @@ beforeAll(async() => {
     testUserAuthToken = registerRes.body.token;
 });
 
-test('login', async() => {
+test('loginPos', async() => {
     const loginRes = await request(app).put('/api/auth').send(testUser);
     expect(loginRes.status).toBe(200);
     expect(loginRes.body.token).toMatch(/^[a-zA-Z0-9\-_]*\.[a-zA-Z0-9\-_]*\.[a-zA-Z0-9\-_]*$/);
 
     const {password, ...user} = {...testUser, roles: [{role: 'diner'}]};
     expect(loginRes.body.user).toMatchObject(user);
+    expect(password).toBe(testUser.password);
+});
+
+test('loginNeg', async() => {
+    testUser.password = 'badPassword';
+    const loginRes = await request(app).put('/api/auth').send(testUser);
+    expect(loginRes.status).not.toBe(200);
+});
+
+test('updateNeg', async() => {
+    let updateRes = await request(app).put(`/api/auth/:${testUser.id}`).send(); 
+    expect(updateRes.status).not.toBe(200);
+    updateRes = await request(app).put(`/api/auth/:${testUser.id}`).set('Authorization', `Bearer ${testUserAuthToken}`).send({testUser}); 
+    expect(updateRes.status).toBe(403);
+});
+
+test('deletePos', async() => {
+    const deleteRes = await request(app).delete('/api/auth').set('Authorization', `Bearer ${testUserAuthToken}`).send(); 
+    expect(deleteRes.status).toBe(200);
+    expect(await deleteRes.body.message).toBe('logout successful');
+});
+
+test('deleteNeg', async() => {
+    const deleteRes = await request(app).delete('/api/auth').send(); 
+    expect(deleteRes.status).not.toBe(200);
+});
+
+test('getPos', async() => {
+    const getRes = await request(app).get('/');
+    expect(getRes.status).toBe(200);
 });
