@@ -49,3 +49,15 @@ test('getPos', async() => {
     const getRes = await request(app).get('/');
     expect(getRes.status).toBe(200);
 });
+
+test('unknownEndpoint', async() => {
+    const res = await request(app).put('/ajsdlfkjalkjdsfaoifjawe').send();
+    expect(res.status).toBe(404);
+    expect(res.body.message).toBe('unknown endpoint');
+});
+
+test('docs', async() => {
+    const res = await request(app).put('/api/docs').send();
+    expect(res.status).toBe(200);
+    expect(res.body.version).toMatch(/\d+\.\d+/);
+});
