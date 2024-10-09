@@ -6,7 +6,7 @@ const { Role } = require('../model/model.js');
 const dbModel = require('./dbModel.js');
 class DB {
   constructor() {
-    this.initialized = this.initializeDatabase(); //TODO: Should this be awaited for?
+    this.initialized = this.initializeDatabase();
   }
 
   async getMenu() {
@@ -89,8 +89,9 @@ class DB {
       if (params.length > 0) {
         const query = `UPDATE user SET ${params.join(', ')} WHERE id=${userId}`;
         await this.query(connection, query);
+        return this.getUser(email, password);
       }
-      return this.getUser(email, password);
+      return {message: 'nothing to change'};
     } finally {
       connection.end();
     }

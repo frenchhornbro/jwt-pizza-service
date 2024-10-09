@@ -1,12 +1,13 @@
-
 const request = require('supertest');
 const app = require('../service');
+
+const randomName = () => Math.random().toString(36).substring(2, 12);
 
 const testUser = {name:'pizza diner', email: 'reg@test.com', password: 'a'};
 let testUserAuthToken;
 
 beforeAll(async() => {
-    testUser.email = Math.random().toString(36).substring(2, 12) + '@test.com';
+    testUser.email = randomName() + '@test.com';
     const registerRes = await request(app).post('/api/auth').send(testUser);
     testUserAuthToken = registerRes.body.token;
 });
@@ -25,6 +26,13 @@ test('loginNeg', async() => {
     testUser.password = 'badPassword';
     const loginRes = await request(app).put('/api/auth').send(testUser);
     expect(loginRes.status).not.toBe(200);
+});
+
+test('updateFullPos', async() => {
+    const newUser = {name:'ImATest', email: 'imatest@test.com', password: 'a'};
+    const regRes = await request(app).post('/api/auth').send(newUser);
+    const updateRes = await request(app).put(`/api/auth/${regRes.body.user.id}`).set('Authorization', `Bearer ${regRes.body.token}`).send({email:'coolerEmail@test.com', password: "betterPassword123"});
+    expect(updateRes.status).toBe(200);
 });
 
 test('updateNeg', async() => {

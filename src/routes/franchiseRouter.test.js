@@ -72,6 +72,13 @@ test('franchiseCreatePos', async() => {
     expect(makeFranchRes.body.name).toBe(franchise.name);
 });
 
+test('franchiseCreateUser', async() => {
+    const franchise = {name: randomName(), admins: [{email: testUser.email}]};
+    const makeFranchRes = await request(app).post('/api/franchise').set('Authorization', `Bearer ${testUserAuthToken}`).send(franchise);
+    expect(makeFranchRes.status).toBe(403);
+    expect(makeFranchRes.body.message).toBe('unable to create a franchise');
+});
+
 test('franchiseCreateNeg', async() => {
     const createRes = await request(app).post('/api/franchise').set('Authorization', `Bearer ${testAdminAuthToken}`).send();
     expect(createRes.status).toBe(500);

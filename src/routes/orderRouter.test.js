@@ -2,7 +2,7 @@ const request = require('supertest');
 const app = require('../service');
 const {Role, DB} = require('../database/database.js');
 
-randomName = () => Math.random().toString(36).substring(2, 12);
+const randomName = () => Math.random().toString(36).substring(2, 12);
 
 let testAdmin = {name: randomName(), email: 'reg@test.com', password: 'a'};
 let testAdminAuthToken;
