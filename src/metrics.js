@@ -11,6 +11,8 @@ class Metrics {
         this.totalPizzasSold = 0;
         this.totalRevenue = 0;
         this.pizzaFailures = 0;
+        this.totalAuthSuccess = 0;
+        this.totalAuthFail = 0;
         
         const interval = 15000;
         const timer = setInterval(() => {
@@ -25,6 +27,8 @@ class Metrics {
             this.sendToGrafana('pizza', '-', 'PURCHASES', this.totalPizzasSold);
             this.sendToGrafana('pizza', '-', 'FAILURES', this.getPizzaFailures());
             this.sendToGrafana('revenue', '-', 'REVENUE', this.totalRevenue);
+            this.sendToGrafana('auth', '-', 'SUCCESS', this.totalAuthSuccess);
+            this.sendToGrafana('auth', '-', 'FAIL', this.totalAuthFail);
         }, interval);
         timer.unref();
     }
@@ -47,6 +51,10 @@ class Metrics {
         }
     };
 
+    handleLoginMetrics = (success) => {
+        if (success) this.totalAuthSuccess++;
+        else this.totalAuthFail++;
+    }
     
     handlePizzaFailureMetrics = () => {
         this.pizzaFailures++;
