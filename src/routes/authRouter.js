@@ -6,6 +6,7 @@ const { asyncHandler } = require('../endpointHelper.js');
 const { DB, Role } = require('../database/database.js');
 
 const authRouter = express.Router();
+let latencyStart = null;
 
 authRouter.endpoints = [
   {
@@ -41,6 +42,7 @@ authRouter.endpoints = [
 ];
 
 async function setAuthUser(req, res, next) {
+  latencyStart = performance.now();
   const token = readAuthToken(req);
   if (token) {
     try {
@@ -70,12 +72,14 @@ authRouter.post(
   asyncHandler(async (req, res) => {
     const { name, email, password } = req.body;
     if (!name || !email || !password) {
+      metrics.reportLatency('register', latencyStart, performance.now());
       return res.status(400).json({ message: 'name, email, and password are required' });
     }
     const user = await DB.addUser({ name, email, password, roles: [{ role: Role.Diner }] });
     const auth = await setAuth(user);
     res.json({ user: user, token: auth });
     metrics.handleRegistrationMetrics();
+    metrics.reportLatency('register', latencyStart, performance.now());
   })
 );
 
@@ -89,9 +93,11 @@ authRouter.put(
       const auth = await setAuth(user);
       res.json({ user: user, token: auth });
       metrics.handleLoginMetrics(true);
+      metrics.reportLatency('login', latencyStart, performance.now());
     }
     catch (error) {
       metrics.handleLoginMetrics(false);
+      metrics.reportLatency('login', latencyStart, performance.now());
       throw error;
     }
   })
@@ -105,6 +111,7 @@ authRouter.delete(
     await clearAuth(req);
     res.json({ message: 'logout successful' });
     metrics.handleLogoutMetrics();
+    metrics.reportLatency('logout', latencyStart, performance.now());
   })
 );
 
@@ -117,11 +124,13 @@ authRouter.put(
     const userId = Number(req.params.userId);
     const user = req.user;
     if (user.id !== userId && !user.isRole(Role.Admin)) {
+      metrics.reportLatency('updateUser', latencyStart, performance.now());
       return res.status(403).json({ message: 'unauthorized' });
     }
 
     const updatedUser = await DB.updateUser(userId, email, password);
     res.json(updatedUser);
+    metrics.reportLatency('updateUser', latencyStart, performance.now());
   })
 );
 

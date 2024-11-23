@@ -14,6 +14,7 @@ class Metrics {
         this.totalAuthSuccess = 0;
         this.totalAuthFail = 0;
         this.numactiveUsers = 0;
+        this.latency = new Map();
         
         const interval = 15000;
         const timer = setInterval(() => {
@@ -31,6 +32,10 @@ class Metrics {
             this.sendToGrafana('auth', '-', 'SUCCESS', this.totalAuthSuccess);
             this.sendToGrafana('auth', '-', 'FAIL', this.totalAuthFail);
             this.sendToGrafana('users', '-', 'ACTIVE', this.numactiveUsers);
+            for (const [endpointName, time] of this.latency) {
+                this.sendToGrafana('latency', '-', endpointName, time);
+            }
+            console.log("----------------------------------------");
         }, interval);
         timer.unref();
     }
@@ -40,6 +45,11 @@ class Metrics {
         this.incrementRequestMetric(method);
         next();
     };
+
+    reportLatency = (endpointName, start, end) => {
+        if (this.latency.get(endpointName) === undefined) this.latency.set(endpointName, 0);
+        this.latency.set(endpointName, this.latency.get(endpointName)+end-start);
+    }
 
     handlePizzaSuccessMetrics = (order) => {
         try {
@@ -52,6 +62,7 @@ class Metrics {
             console.error("handlePizzaMetrics failed");
         }
     };
+    handlePizzaFailureMetrics = () => this.pizzaFailures++;
 
     handleRegistrationMetrics = () => this.trackActiveUser(true);
     handleLogoutMetrics = () => this.trackActiveUser(false);
@@ -68,8 +79,6 @@ class Metrics {
         if (isIncoming) this.numactiveUsers++;
         else this.numactiveUsers--;
     };
-    
-    handlePizzaFailureMetrics = () => this.pizzaFailures++;
 
     getPizzaFailures = () => {
         let ret = this.pizzaFailures;
