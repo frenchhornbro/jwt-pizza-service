@@ -8,30 +8,60 @@ class Metrics {
         this.totalPost = 0;
         this.totalPut = 0;
         this.totalDelete = 0;
+        this.totalPizzasSold = 0;
+        this.totalRevenue = 0;
+        this.pizzaFailures = 0;
         
-        const interval = 3000;
+        const interval = 15000;
         const timer = setInterval(() => {
+            //TODO: Refactor into sending one string, not 10
             this.sendToGrafana('request', 'ALL', 'total', this.totalRequests);
             this.sendToGrafana('request', 'GET', 'get', this.totalGet);
             this.sendToGrafana('request', 'POST', 'post', this.totalPost);
-            this.sendToGrafana('request', 'PUT', 'put', this.totalPost);
+            this.sendToGrafana('request', 'PUT', 'put', this.totalPut);
             this.sendToGrafana('request', 'DELETE', 'delete', this.totalDelete);
             this.sendToGrafana('cpu', '-', 'CPU', this.getCpuUsagePercentage());
             this.sendToGrafana('memory', '-', 'MEMORY', this.getMemoryUsagePercentage());
+            this.sendToGrafana('pizza', '-', 'PURCHASES', this.totalPizzasSold);
+            this.sendToGrafana('pizza', '-', 'FAILURES', this.getPizzaFailures());
+            this.sendToGrafana('revenue', '-', 'REVENUE', this.totalRevenue);
         }, interval);
         timer.unref();
     }
-  
+
     requestTracker = async (req, res, next) => {
         let method = req.method;
         this.incrementRequestMetric(method);
         next();
     };
 
+    handlePizzaSuccessMetrics = (order) => {
+        try {
+            for (let pizza of order.items) {
+                this.totalRevenue += pizza.price;
+                this.totalPizzasSold++;
+            }
+        }
+        catch {
+            console.error("handlePizzaMetrics failed");
+        }
+    };
+
+    
+    handlePizzaFailureMetrics = () => {
+        this.pizzaFailures++;
+    };
+
+    getPizzaFailures = () => {
+        let ret = this.pizzaFailures;
+        this.pizzaFailures = 0;
+        return ret;
+    };
+
     getCpuUsagePercentage = () => {
         const cpuUsage = os.loadavg()[0] / os.cpus().length;
         return cpuUsage.toFixed(2) * 100;
-    }
+    };
 
     getMemoryUsagePercentage = () => {
         const totalMem = os.totalmem();
@@ -40,6 +70,26 @@ class Metrics {
         const memUsage = (usedMem / totalMem) * 100;
         return memUsage.toFixed(2);
     };
+
+    incrementRequestMetric(metricName) {
+        this.totalRequests++;
+        switch (metricName) {
+            case 'GET':
+                this.totalGet++;
+                break;
+            case 'POST':
+                this.totalPost++;
+                break;
+            case 'PUT':
+                this.totalPut++;
+                break;
+            case 'DELETE':
+                this.totalDelete++;
+                break;
+            default:
+                console.error(`Unknown method: ${metricName}`);
+        }
+    }
 
     sendToGrafana(metricPrefix, httpMethod, metricName, metricValue) {
         const metric = `${metricPrefix},source=${config.metrics.source},method=${httpMethod} ${metricName}=${metricValue}`;
@@ -61,26 +111,6 @@ class Metrics {
         .catch((error) => {
             console.error('Error pushing metrics:', error);
         });
-    }
-
-    incrementRequestMetric(method) {
-        this.totalRequests++;
-        switch (method) {
-            case 'GET':
-                this.totalGet++;
-                break
-            case 'POST':
-                this.totalPost++;
-                break
-            case 'PUT':
-                this.totalPut++;
-                break;
-            case 'DELETE':
-                this.totalDelete++;
-                break
-            default:
-                console.log(`Unknown method: ${method}`);
-        }
     }
 }
 
