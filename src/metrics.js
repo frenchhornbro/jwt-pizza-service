@@ -13,6 +13,7 @@ class Metrics {
         this.pizzaFailures = 0;
         this.totalAuthSuccess = 0;
         this.totalAuthFail = 0;
+        this.numactiveUsers = 0;
         
         const interval = 15000;
         const timer = setInterval(() => {
@@ -29,6 +30,7 @@ class Metrics {
             this.sendToGrafana('revenue', '-', 'REVENUE', this.totalRevenue);
             this.sendToGrafana('auth', '-', 'SUCCESS', this.totalAuthSuccess);
             this.sendToGrafana('auth', '-', 'FAIL', this.totalAuthFail);
+            this.sendToGrafana('users', '-', 'ACTIVE', this.numactiveUsers);
         }, interval);
         timer.unref();
     }
@@ -51,14 +53,23 @@ class Metrics {
         }
     };
 
+    handleRegistrationMetrics = () => this.trackActiveUser(true);
+    handleLogoutMetrics = () => this.trackActiveUser(false);
+
     handleLoginMetrics = (success) => {
-        if (success) this.totalAuthSuccess++;
+        if (success) {
+            this.totalAuthSuccess++;
+            this.trackActiveUser(true);
+        }
         else this.totalAuthFail++;
-    }
-    
-    handlePizzaFailureMetrics = () => {
-        this.pizzaFailures++;
     };
+
+    trackActiveUser = (isIncoming) => {
+        if (isIncoming) this.numactiveUsers++;
+        else this.numactiveUsers--;
+    };
+    
+    handlePizzaFailureMetrics = () => this.pizzaFailures++;
 
     getPizzaFailures = () => {
         let ret = this.pizzaFailures;
