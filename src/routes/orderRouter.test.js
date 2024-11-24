@@ -45,7 +45,7 @@ test('orderGetNoAuth', async() => {
     const getRes = await request(app).get('/api/order');
     expect(getRes.status).toBe(401);
     expect(getRes.body.message).toBe('unauthorized');
-})
+});
 
 test('addToMenuAdmin', async() => {
     const newItem = {title: 'Taco', description: 'It is a taco', image: 'taco.png', price: 20};
@@ -55,6 +55,12 @@ test('addToMenuAdmin', async() => {
     expect(putRes.body[putRes.body.length-1].description).toBe(newItem.description);
     expect(putRes.body[putRes.body.length-1].image).toBe(newItem.image);
     expect(putRes.body[putRes.body.length-1].price).toBe(newItem.price);
+});
+
+test('createOrder', async() => {
+    const order = {franchiseId: 1, storeId: 1, items:[{menuId: 1, description: "Veggie", price: .05}]};
+    const postReq = await request(app).post('/api/order').set('Authorization', `Bearer ${testUserAuthToken}`).send(order);
+    expect(postReq.status).toBe(200);
 });
 
 test('addToMenuUser', async() => {
