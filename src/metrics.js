@@ -14,7 +14,7 @@ class Metrics {
         this.totalAuthSuccess = 0;
         this.totalAuthFail = 0;
         this.numactiveUsers = 0;
-        this.latency = new Map();
+        this.latency = new Map(); // endpointName: [time, numRequests]
         
         const interval = 15000;
         const timer = setInterval(() => {
@@ -32,8 +32,9 @@ class Metrics {
             this.sendToGrafana('auth', '-', 'SUCCESS', this.totalAuthSuccess);
             this.sendToGrafana('auth', '-', 'FAIL', this.totalAuthFail);
             this.sendToGrafana('users', '-', 'ACTIVE', this.numactiveUsers);
-            for (const [endpointName, time] of this.latency) {
-                this.sendToGrafana('latency', '-', endpointName, time);
+            for (const [endpointName, timeArr] of this.latency) {
+                this.sendToGrafana('latency', '-', endpointName, timeArr[0]/timeArr[1]);
+                this.latency.set(endpointName, [0, 0]);
             }
             console.log("----------------------------------------");
         }, interval);
@@ -47,8 +48,8 @@ class Metrics {
     };
 
     reportLatency = (endpointName, start, end) => {
-        if (this.latency.get(endpointName) === undefined) this.latency.set(endpointName, 0);
-        this.latency.set(endpointName, this.latency.get(endpointName)+end-start);
+        if (this.latency.get(endpointName) === undefined) this.latency.set(endpointName, [0, 0]);
+        this.latency.set(endpointName, [this.latency.get(endpointName)[0]+end-start, this.latency.get(endpointName)[1]+1]);
     }
 
     handlePizzaSuccessMetrics = (order) => {

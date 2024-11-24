@@ -43,7 +43,7 @@ orderRouter.endpoints = [
 ];
 
 // Start tracking latency
-authRouter.latencyTracker = (req, res, next) => {
+orderRouter.latencyTracker = (req, res, next) => {
   latencyStart = performance.now();
   next();
 }

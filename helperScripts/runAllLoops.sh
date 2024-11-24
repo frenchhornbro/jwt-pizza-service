@@ -8,7 +8,7 @@ trap cleanup SIGINT
 
 # Kill all background processes on errors
 handleSigChld() {
-    if [ $? -eq 1 ]; then
+    if [ $? -ne 0 ]; then
         echo "Error thrown, exiting..."
         kill 0
         exit
