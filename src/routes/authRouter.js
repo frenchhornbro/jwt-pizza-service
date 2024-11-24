@@ -58,10 +58,10 @@ async function setAuthUser(req, res, next) {
 }
 
 // Start tracking latency
-authRouter.latencyTracker = (req, res, next) => {
+authRouter.use((req, res, next) => {
   latencyStart = performance.now();
   next();
-}
+});
 
 // Authenticate token
 authRouter.authenticateToken = (req, res, next) => {

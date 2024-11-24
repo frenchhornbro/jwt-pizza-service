@@ -18,25 +18,26 @@ class Metrics {
         
         const interval = 15000;
         const timer = setInterval(() => {
-            //TODO: Refactor into sending one string, not 10
-            this.sendToGrafana('request', 'ALL', 'total', this.totalRequests);
-            this.sendToGrafana('request', 'GET', 'get', this.totalGet);
-            this.sendToGrafana('request', 'POST', 'post', this.totalPost);
-            this.sendToGrafana('request', 'PUT', 'put', this.totalPut);
-            this.sendToGrafana('request', 'DELETE', 'delete', this.totalDelete);
-            this.sendToGrafana('cpu', '-', 'CPU', this.getCpuUsagePercentage());
-            this.sendToGrafana('memory', '-', 'MEMORY', this.getMemoryUsagePercentage());
-            this.sendToGrafana('pizza', '-', 'PURCHASES', this.totalPizzasSold);
-            this.sendToGrafana('pizza', '-', 'FAILURES', this.getPizzaFailures());
-            this.sendToGrafana('revenue', '-', 'REVENUE', this.totalRevenue);
-            this.sendToGrafana('auth', '-', 'SUCCESS', this.totalAuthSuccess);
-            this.sendToGrafana('auth', '-', 'FAIL', this.totalAuthFail);
-            this.sendToGrafana('users', '-', 'ACTIVE', this.numactiveUsers);
+            let metricsStr = "";
+            metricsStr += this.buildPrometheusStr('request', 'ALL', 'total', this.totalRequests);
+            metricsStr += this.buildPrometheusStr('request', 'GET', 'get', this.totalGet);
+            metricsStr += this.buildPrometheusStr('request', 'POST', 'post', this.totalPost);
+            metricsStr += this.buildPrometheusStr('request', 'PUT', 'put', this.totalPut);
+            metricsStr += this.buildPrometheusStr('request', 'DELETE', 'delete', this.totalDelete);
+            metricsStr += this.buildPrometheusStr('cpu', '-', 'CPU', this.getCpuUsagePercentage());
+            metricsStr += this.buildPrometheusStr('memory', '-', 'MEMORY', this.getMemoryUsagePercentage());
+            metricsStr += this.buildPrometheusStr('pizza', '-', 'PURCHASES', this.totalPizzasSold);
+            metricsStr += this.buildPrometheusStr('pizza', '-', 'FAILURES', this.getPizzaFailures());
+            metricsStr += this.buildPrometheusStr('revenue', '-', 'REVENUE', this.totalRevenue);
+            metricsStr += this.buildPrometheusStr('auth', '-', 'SUCCESS', this.totalAuthSuccess);
+            metricsStr += this.buildPrometheusStr('auth', '-', 'FAIL', this.totalAuthFail);
+            metricsStr += this.buildPrometheusStr('users', '-', 'ACTIVE', this.numactiveUsers);
             for (const [endpointName, timeArr] of this.latency) {
-                this.sendToGrafana('latency', '-', endpointName, timeArr[0]/timeArr[1]);
+                const reportedTime = (timeArr[1] === 0) ? 0 : timeArr[0] / timeArr[1];
+                metricsStr += this.buildPrometheusStr('latency', '-', endpointName, reportedTime);
                 this.latency.set(endpointName, [0, 0]);
             }
-            console.log("----------------------------------------");
+            this.sendToGrafana(metricsStr);
         }, interval);
         timer.unref();
     }
@@ -120,21 +121,23 @@ class Metrics {
         }
     }
 
-    sendToGrafana(metricPrefix, httpMethod, metricName, metricValue) {
-        const metric = `${metricPrefix},source=${config.metrics.source},method=${httpMethod} ${metricName}=${metricValue}`;
-    
+    buildPrometheusStr(metricPrefix, httpMethod, metricName, metricValue) {
+        return `${metricPrefix},source=${config.metrics.source},method=${httpMethod} ${metricName}=${metricValue}\n`;
+    }
+
+    sendToGrafana(metrics) {
         fetch(`${config.metrics.url}`, {
             method: 'post',
-            body: metric,
+            body: metrics,
             headers: { Authorization: `Bearer ${config.metrics.userId}:${config.metrics.apiKey}` },
         })
         .then((response) => {
             if (!response.ok) {
-                console.error('Failed to push metrics data to Grafana');
-                response.json();
+                console.error(`Failed to push metrics data to Grafana: ${metrics}`);
+                console.error(`\t${response.json()}`);
             }
             else {
-                console.log(`Pushed ${metric}`);
+                console.log(`Pushed ${metrics}`);
             }
         })
         .catch((error) => {

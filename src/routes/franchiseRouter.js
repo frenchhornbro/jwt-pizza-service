@@ -58,10 +58,10 @@ franchiseRouter.endpoints = [
 ];
 
 // Start tracking latency
-franchiseRouter.latencyTracker = (req, res, next) => {
+franchiseRouter.use((req, res, next) => {
   latencyStart = performance.now();
   next();
-}
+});
 
 // getFranchises
 franchiseRouter.get(
