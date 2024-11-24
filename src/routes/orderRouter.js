@@ -6,6 +6,7 @@ const { asyncHandler, StatusCodeError } = require('../endpointHelper.js');
 const metrics = require('../metrics.js');
 
 const orderRouter = express.Router();
+let latencyStart = null;
 
 orderRouter.endpoints = [
   {
@@ -41,11 +42,18 @@ orderRouter.endpoints = [
   },
 ];
 
+// Start tracking latency
+authRouter.latencyTracker = (req, res, next) => {
+  latencyStart = performance.now();
+  next();
+}
+
 // getMenu
 orderRouter.get(
   '/menu',
   asyncHandler(async (req, res) => {
     res.send(await DB.getMenu());
+    metrics.reportLatency('getMenu', latencyStart, performance.now());
   })
 );
 
@@ -55,12 +63,14 @@ orderRouter.put(
   authRouter.authenticateToken,
   asyncHandler(async (req, res) => {
     if (!req.user.isRole(Role.Admin)) {
+      metrics.reportLatency('addMenuItem', latencyStart, performance.now());
       throw new StatusCodeError('unable to add menu item', 403);
     }
 
     const addMenuItemReq = req.body;
     await DB.addMenuItem(addMenuItemReq);
     res.send(await DB.getMenu());
+    metrics.reportLatency('addMenuItem', latencyStart, performance.now());
   })
 );
 
@@ -70,6 +80,7 @@ orderRouter.get(
   authRouter.authenticateToken,
   asyncHandler(async (req, res) => {
     res.json(await DB.getOrders(req.user, req.query.page));
+    metrics.reportLatency('getOrders', latencyStart, performance.now());
   })
 );
 
@@ -89,9 +100,11 @@ orderRouter.post(
     if (r.ok) {
       res.send({ order, jwt: j.jwt, reportUrl: j.reportUrl });
       metrics.handlePizzaSuccessMetrics(order);
+      metrics.reportLatency('createOrder', latencyStart, performance.now());
     } else {
       res.status(500).send({ message: 'Failed to fulfill order at factory', reportUrl: j.reportUrl });
       metrics.handlePizzaFailureMetrics();
+      metrics.reportLatency('createOrder', latencyStart, performance.now());
     }
   })
 );

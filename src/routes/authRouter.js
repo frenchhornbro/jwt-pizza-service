@@ -42,7 +42,6 @@ authRouter.endpoints = [
 ];
 
 async function setAuthUser(req, res, next) {
-  latencyStart = performance.now();
   const token = readAuthToken(req);
   if (token) {
     try {
@@ -55,6 +54,12 @@ async function setAuthUser(req, res, next) {
       req.user = null;
     }
   }
+  next();
+}
+
+// Start tracking latency
+authRouter.latencyTracker = (req, res, next) => {
+  latencyStart = performance.now();
   next();
 }
 
