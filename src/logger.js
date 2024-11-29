@@ -3,14 +3,6 @@ const config = require('./config.js');
 class Logger {
     constructor() {
         this.verbose = false;
-        this.interval = 5000;
-        this.logs = [];
-        const timer = setInterval(() => {
-            if (this.logs.length > 0) {
-                this.sendLogsToGrafana('info', 'http');
-            }
-        }, this.interval);
-        timer.unref();
     }
 
     // Handle requests and responses
@@ -29,7 +21,9 @@ class Logger {
                 resBody: JSON.stringify(res.body)
             };
             const values = [this.nowString(), this.sanitizeData(logData)];
-            this.logs.push(values);
+            this.sendLogsToGrafana(this.statusToLogLevel(res.statusCode), 'http', values);
+
+            if (logData.reqPath === '/api/auth/' && logData.reqMethod === 'PUT') this.logLoginAttempt(req, res);
 
             // Restore previous send() functionality and call send()
             res.send = send;
@@ -37,6 +31,29 @@ class Logger {
         }
         next();
     };
+
+    logLoginAttempt(req, res) {
+        const level = this.statusToLogLevel(res.statusCode);
+        const type = 'auth';
+        const loginAttemptData = {
+            username: req.body.email,
+            status: res.statusCode
+        };
+        const logEvent = [this.nowString(), this.sanitizeData(loginAttemptData)];
+        this.sendLogsToGrafana(level, type, logEvent);
+    }
+
+    logAuthTokenValidation(req, tokenIsValid) {
+        const level = (tokenIsValid) ? 'info' : 'warn';
+        const type = 'authToken';
+        const authTokenValidationData = {
+            validAuthToken: tokenIsValid,
+            reqMethod: req.method,
+            reqPath: req.baseUrl + req.path
+        };
+        const logEvent = [this.nowString(), this.sanitizeData(authTokenValidationData)];
+        this.sendLogsToGrafana(level, type, logEvent);
+    }
 
     // logError(endpointOrigin, errorNum) {
         // Q: Should I bundle errors or send them immediately?
@@ -46,29 +63,31 @@ class Logger {
         return (Math.floor(Date.now()) * 1000000).toString(); // Loki reads time in nanoseconds, not milliseconds
     }
 
-    // statusToLogLevel(status) {
-        //Q: I'm sending logs bundled. Do I have to have separate bundles for seperate status codes? Since labels are applied to all logs within.
-    // }
+    statusToLogLevel(statusCode) {
+        if (statusCode >= 500) return 'error';
+        if (statusCode >= 400) return 'warn';
+        return 'info';
+    }
 
     sanitizeData(dataToSanitize) {
         const logData = JSON.stringify(dataToSanitize);
         let sanitizedData = logData.replace(/\\"password\\":\s*\\"[^"]*\\"/g, '\\"password\\":\\"*****\\"');
         sanitizedData = sanitizedData.replace(/\\"token\\":\s*\\"[^"]*\\"/g, '\\"token\\":\\"*****\\"');
-        sanitizedData = sanitizedData.replace(/\\"Authorization\\":\s*\\"Bearer\s+\S=\\"/g, '\\"Authorization\\":\\"*****\\"');
+        sanitizedData = sanitizedData.replace(/\\"Authorization\\":\s*\\"Bearer\s+\S+\\"/g, '\\"Authorization\\":\\"*****\\"');
+        sanitizedData = sanitizedData.replace(/"Bearer\s+\S+"/g, '"Bearer *****"');
         return sanitizedData;
     }
 
     // Bundle logs such that they can be sent to Grafana
-    createPackage(level, type) {
+    createPackage(level, type, logEvent) {
         const labels = {component: config.logging.source, level: level, type: type};
-        const eventToLog = {streams: [{stream: labels, values: this.logs}]};
+        const eventToLog = {streams: [{stream: labels, values: [logEvent]}]};
         return eventToLog;
     }
 
-    async sendLogsToGrafana(level, type) {
+    async sendLogsToGrafana(level, type, logEvent) {
         try {
-            const packageToSend = this.createPackage(level, type);
-            this.logs = [];
+            const packageToSend = this.createPackage(level, type, logEvent);
             const body = JSON.stringify(packageToSend);
             const grafRes = await fetch(`${config.logging.url}`, {
                 method: 'POST',

@@ -12,13 +12,13 @@ test('createPackage', async() => {
     const level = 'test';
     const type = 'test';
     const labels = {component: component, level: level, type: type};
-    const expected = {streams: [{stream: labels, values: []}]};
-    expect(logger.createPackage(level, type)).toMatchObject(expected);
+    const expected = {streams: [{stream: labels, values: [[]]}]};
+    expect(logger.createPackage(level, type, [])).toMatchObject(expected);
 });
 
 test('sendToGrafana', async() => {
     logger.verbose = true;
-    await logger.sendLogsToGrafana('test', 'test');
+    await logger.sendLogsToGrafana('test', 'test', []);
 });
 
 test('failurePrints', async() => {

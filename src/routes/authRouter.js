@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const config = require('../config.js');
 const metrics = require('../metrics.js');
+const logger = require('../logger.js');
 const { asyncHandler } = require('../endpointHelper.js');
 const { DB, Role } = require('../database/database.js');
 
@@ -44,15 +45,18 @@ authRouter.endpoints = [
 async function setAuthUser(req, res, next) {
   const token = readAuthToken(req);
   if (token) {
+    let tokenIsValid = false;
     try {
       if (await DB.isLoggedIn(token)) {
         // Check the database to make sure the token is valid.
         req.user = jwt.verify(token, config.jwtSecret);
         req.user.isRole = (role) => !!req.user.roles.find((r) => r.role === role);
+        tokenIsValid = true;
       }
     } catch {
       req.user = null;
     }
+    logger.logAuthTokenValidation(req, tokenIsValid);
   }
   next();
 }
@@ -100,10 +104,10 @@ authRouter.put(
       metrics.handleLoginMetrics(true);
       metrics.reportLatency('login', latencyStart, performance.now());
     }
-    catch (error) {
+    catch {
       metrics.handleLoginMetrics(false);
       metrics.reportLatency('login', latencyStart, performance.now());
-      throw error;
+      return res.status(401).json({ message: 'incorrect credentials' });
     }
   })
 );
