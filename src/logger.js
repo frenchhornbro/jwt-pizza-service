@@ -1,15 +1,16 @@
 const config = require('./config.js');
-const verbose = false;
 
 class Logger {
     constructor() {
+        this.verbose = false;
+        this.interval = 5000;
         this.logs = [];
-        const interval = 5000;
-        setInterval(() => {
+        const timer = setInterval(() => {
             if (this.logs.length > 0) {
                 this.sendLogsToGrafana('info', 'http');
             }
-        }, interval);
+        }, this.interval);
+        timer.unref();
     }
 
     // Handle requests and responses
@@ -51,9 +52,9 @@ class Logger {
 
     sanitizeData(dataToSanitize) {
         const logData = JSON.stringify(dataToSanitize);
-        let sanitizedData = logData.replace(/\\"password\\":\s*\\"[^"]*\\"/g, '\\"password\\": \\"*****\\"');
-        sanitizedData = sanitizedData.replace(/\\"token\\":\s*\\"[^"]*\\"/g, '\\"token\\": \\"*****\\"');
-        sanitizedData = sanitizedData.replace(/\\"Authorization\\":\s*\\"Bearer\s+\S=\\"/g, '\\"Authorization\\": \\"*****\\"');
+        let sanitizedData = logData.replace(/\\"password\\":\s*\\"[^"]*\\"/g, '\\"password\\":\\"*****\\"');
+        sanitizedData = sanitizedData.replace(/\\"token\\":\s*\\"[^"]*\\"/g, '\\"token\\":\\"*****\\"');
+        sanitizedData = sanitizedData.replace(/\\"Authorization\\":\s*\\"Bearer\s+\S=\\"/g, '\\"Authorization\\":\\"*****\\"');
         return sanitizedData;
     }
 
@@ -64,25 +65,32 @@ class Logger {
         return eventToLog;
     }
 
-    sendLogsToGrafana(level, type) {
-        const packageToSend = this.createPackage(level, type);
-        const body = JSON.stringify(packageToSend);
-        fetch(`${config.logging.url}`, {
-            method: 'post',
-            body: body,
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${config.logging.userId}:${config.logging.apiKey}`,
-            },
-        }).then((res) => {
-            if (!res.ok) {
-                res.text().then((text) => {
-                    console.log(`Failed to send log to Grafana: ${text}`);
-                });
-            }
-            else if (verbose) console.log('Logs sent to Grafana');
+    async sendLogsToGrafana(level, type) {
+        try {
+            const packageToSend = this.createPackage(level, type);
             this.logs = [];
-        });
+            const body = JSON.stringify(packageToSend);
+            const grafRes = await fetch(`${config.logging.url}`, {
+                method: 'POST',
+                body: body,
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${config.logging.userId}:${config.logging.apiKey}`,
+                },
+            });
+            this.checkFailure(grafRes);
+            if (this.verbose) console.log('Logs sent to Grafana');
+        }
+        catch (error) {
+            console.error('Error pushing logs:', error);
+        }
+    }
+
+    async checkFailure(grafRes) {
+        if (!grafRes.ok) {
+            const errText = await grafRes.text();
+            console.log(`Failed to send log to Grafana: ${errText}`);
+        }
     }
 }
 

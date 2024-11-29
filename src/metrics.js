@@ -1,9 +1,10 @@
 const os = require('os');
 const config = require('./config.js');
-const verbose = false;
 
 class Metrics {
     constructor() {
+        this.verbose = false;
+        this.interval = 15000;
         this.totalRequests = 0;
         this.totalGet = 0;
         this.totalPost = 0;
@@ -17,7 +18,6 @@ class Metrics {
         this.numactiveUsers = 0;
         this.latency = new Map(); // endpointName: [time, numRequests]
         
-        const interval = 15000;
         const timer = setInterval(() => {
             let metricsStr = "";
             metricsStr += this.buildPrometheusStr('request', 'ALL', 'total', this.totalRequests);
@@ -39,7 +39,7 @@ class Metrics {
                 this.latency.set(endpointName, [0, 0]);
             }
             this.sendToGrafana(metricsStr);
-        }, interval);
+        }, this.interval);
         timer.unref();
     }
 
@@ -126,24 +126,26 @@ class Metrics {
         return `${metricPrefix},source=${config.metrics.source},method=${httpMethod} ${metricName}=${metricValue}\n`;
     }
 
-    sendToGrafana(metrics) {
-        fetch(`${config.metrics.url}`, {
-            method: 'post',
-            body: metrics,
-            headers: { Authorization: `Bearer ${config.metrics.userId}:${config.metrics.apiKey}` },
-        })
-        .then((response) => {
-            if (!response.ok) {
-                console.error(`Failed to push metrics data to Grafana: ${metrics}`);
-                console.error(`\t${response.json()}`);
-            }
-            else {
-                if (verbose) console.log(`Pushed ${metrics}`);
-            }
-        })
-        .catch((error) => {
+    async sendToGrafana(metrics) {
+        try {
+            const grafRes = await fetch(`${config.metrics.url}`, {
+                method: 'post',
+                body: metrics,
+                headers: { Authorization: `Bearer ${config.metrics.userId}:${config.metrics.apiKey}` },
+            });
+            this.checkFailure(grafRes);
+            if (this.verbose) console.log(`Pushed ${metrics}`);
+        }
+        catch(error) {
             console.error('Error pushing metrics:', error);
-        });
+        }
+    }
+
+    async checkFailure(grafRes) {
+        if (!grafRes.ok) {
+            console.error(`Failed to push metrics data to Grafana: ${metrics}`);
+            console.error(`\t${await grafRes.json()}`);
+        }
     }
 }
 
