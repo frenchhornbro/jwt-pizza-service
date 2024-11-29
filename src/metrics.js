@@ -1,5 +1,6 @@
 const os = require('os');
 const config = require('./config.js');
+const verbose = false;
 
 class Metrics {
     constructor() {
@@ -137,7 +138,7 @@ class Metrics {
                 console.error(`\t${response.json()}`);
             }
             else {
-                console.log(`Pushed ${metrics}`);
+                if (verbose) console.log(`Pushed ${metrics}`);
             }
         })
         .catch((error) => {
