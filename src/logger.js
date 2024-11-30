@@ -24,6 +24,7 @@ class Logger {
             this.sendLogsToGrafana(this.statusToLogLevel(res.statusCode), 'http', values);
 
             if (logData.reqPath === '/api/auth/' && logData.reqMethod === 'PUT') this.logLoginAttempt(req, res);
+            else if (logData.reqPath === '/api/order/' && logData.reqMethod === 'POST') this.logFactoryReq(req, res);
 
             // Restore previous send() functionality and call send()
             res.send = send;
@@ -33,7 +34,7 @@ class Logger {
     };
 
     logServerEvent(serverEvent) {
-        const level = 'warn';
+        const level = (serverEvent === 'close') ? 'error' : 'info';
         const type = 'server';
         const log = {server: serverEvent};
         const logEvent = [this.nowString(), JSON.stringify(log)];
@@ -44,10 +45,21 @@ class Logger {
         const level = this.statusToLogLevel(res.statusCode);
         const type = 'auth';
         const loginAttemptData = {
-            username: req.body.email,
-            status: res.statusCode
+            userEmail: req.body.email,
+            loginStatus: res.statusCode
         };
         const logEvent = [this.nowString(), this.sanitizeData(loginAttemptData)];
+        this.sendLogsToGrafana(level, type, logEvent);
+    }
+
+    logFactoryReq(req, res) {
+        const level = this.statusToLogLevel(res.statusCode);
+        const type = 'factory';
+        const factoryReqData = {
+            userEmail: req.user.email,
+            factoryStatus: res.statusCode
+        };
+        const logEvent = [this.nowString(), this.sanitizeData(factoryReqData)];
         this.sendLogsToGrafana(level, type, logEvent);
     }
 

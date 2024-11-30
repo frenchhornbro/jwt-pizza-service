@@ -8,5 +8,5 @@ let server = app.listen(port, () => {
 });
 
 server.on('close', () => {
-  logger.logServerEvent("end");
+  logger.logServerEvent("close");
 });
