@@ -32,6 +32,14 @@ class Logger {
         next();
     };
 
+    logServerEvent(serverEvent) {
+        const level = 'warn';
+        const type = 'server';
+        const log = {server: serverEvent};
+        const logEvent = [this.nowString(), JSON.stringify(log)];
+        this.sendLogsToGrafana(level, type, logEvent);
+    }
+
     logLoginAttempt(req, res) {
         const level = this.statusToLogLevel(res.statusCode);
         const type = 'auth';
@@ -56,7 +64,7 @@ class Logger {
     }
 
     // logError(endpointOrigin, errorNum) {
-        // Q: Should I bundle errors or send them immediately?
+        
     // }
 
     nowString() {
