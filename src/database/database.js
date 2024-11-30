@@ -431,7 +431,7 @@ class DB {
       console.error(JSON.stringify({ message: 'Error initializing database', exception: err.message, connection: config.db.connection }));
       logStatus = logger.ERROR;
     } finally {
-      logger.logServerEvent('initializeDatabase', logStatus);
+      logger.logServerEvent('Database initialized', logStatus);
     }
   }
 

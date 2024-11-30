@@ -39,7 +39,7 @@ class Logger {
         if (status) level = status;
         else level = (serverEvent === 'close') ? this.ERROR : this.INFO;
         const type = 'server';
-        const log = {server: serverEvent};
+        const log = {message: serverEvent};
         const logEvent = [this.nowString(), JSON.stringify(log)];
         this.sendLogsToGrafana(level, type, logEvent);
     }
