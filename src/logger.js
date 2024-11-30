@@ -21,7 +21,7 @@ class Logger {
                 authHeader: authHeaders,
                 reqBody: JSON.stringify(req.body),
                 status: res.statusCode,
-                resBody: JSON.stringify(res.body),
+                resBody: JSON.stringify(resBody),
                 ip: req.ip
             };
             const values = [this.nowString(), this.sanitizeData(logData)];
@@ -90,7 +90,6 @@ class Logger {
         const type = 'dbQuery';
         const dbQueryData = {
             functionName: functionName,
-            status: queryStatus
         };
         const logEvent = [this.nowString(), this.sanitizeData(dbQueryData)];
         this.sendLogsToGrafana(level, type, logEvent);
