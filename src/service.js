@@ -45,13 +45,14 @@ app.use('*', (req, res) => {
   res.status(404).json({
     message: 'unknown endpoint',
   });
-  logger.logError(req, 404);
+  logger.logError(req, 404, res.message);
 });
 
 // Default error handler for all exceptions and errors.
 app.use((err, req, res, next) => {
-  res.status(err.statusCode ?? 500).json({ message: err.message, stack: err.stack });
-  logger.logError(req, err.statusCode ?? 500);
+  if (err.statusCode) res.status(err.statusCode).json({ message: err.message, stack: err.stack });
+  else res.status(500).json({ message: 'An internal error occurred' });
+  logger.logError(req, err.statusCode ?? 500, err.message);
   next();
 });
 

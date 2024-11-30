@@ -95,13 +95,14 @@ class Logger {
         this.sendLogsToGrafana(level, type, logEvent);
     }
 
-    logError(req, status) {
+    logError(req, status, errorMessage) {
         const level = this.statusToLogLevel(status);
         const type = 'error';
         const errorData = {
             method: req.method,
             path: req.baseUrl + req.path,
             status: status,
+            message: errorMessage,
             ip: req.ip
         };
         const logEvent = [this.nowString(), this.sanitizeData(errorData)];
