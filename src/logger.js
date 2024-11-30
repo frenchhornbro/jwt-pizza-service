@@ -55,8 +55,9 @@ class Logger {
     logFactoryReq(req, res) {
         const level = this.statusToLogLevel(res.statusCode);
         const type = 'factory';
+        const userEmail =  (req && req.user && req.user.email) ? req.user.email : null;
         const factoryReqData = {
-            userEmail: req.user.email,
+            userEmail: userEmail,
             factoryStatus: res.statusCode
         };
         const logEvent = [this.nowString(), this.sanitizeData(factoryReqData)];
