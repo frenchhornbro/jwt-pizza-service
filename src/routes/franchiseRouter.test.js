@@ -81,7 +81,7 @@ test('franchiseCreateUser', async() => {
 
 test('franchiseCreateNeg', async() => {
     const createRes = await request(app).post('/api/franchise').set('Authorization', `Bearer ${testAdminAuthToken}`).send();
-    expect(createRes.status).toBe(500);
+    expect(createRes.status).toBe(400);
 });
 
 test('storeCreatePos', async() => {

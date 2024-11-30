@@ -214,6 +214,7 @@ class DB {
     const connection = await this.getConnection();
     let logStatus = logger.INFO;
     try {
+      if (!franchise.admins || !franchise.admins.length > 0) throw new StatusCodeError('No admins specified', 400);
       for (const admin of franchise.admins) {
         const adminUser = await this.query(connection, `SELECT id, name FROM user WHERE email=?`, [admin.email]);
         if (adminUser.length == 0) {

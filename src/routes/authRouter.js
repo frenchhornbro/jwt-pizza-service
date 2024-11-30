@@ -55,8 +55,9 @@ async function setAuthUser(req, res, next) {
       }
     } catch {
       req.user = null;
+    } finally {
+      logger.logAuthTokenValidation(req, tokenIsValid);
     }
-    logger.logAuthTokenValidation(req, tokenIsValid);
   }
   next();
 }
