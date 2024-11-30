@@ -27,8 +27,8 @@ class Logger {
             const values = [this.nowString(), this.sanitizeData(logData)];
             this.sendLogsToGrafana(this.statusToLogLevel(res.statusCode), 'http', values);
 
-            if (logData.reqPath === '/api/auth/' && logData.reqMethod === 'PUT') this.logLoginAttempt(req, res);
-            else if (logData.reqPath === '/api/order/' && logData.reqMethod === 'POST') this.logFactoryReq(req, res);
+            if (logData.path === '/api/auth/' && logData.method === 'PUT') this.logLoginAttempt(req, res);
+            else if (logData.path === '/api/order/' && logData.method === 'POST') this.logFactoryReq(req, res);
 
             // Restore previous send() functionality and call send()
             res.send = send;
