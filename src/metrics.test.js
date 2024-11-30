@@ -29,6 +29,7 @@ test('getMemoryUsage', () => {
 test('buildAndSendMetrics', async() => {
     jest.useFakeTimers({now: 0});
     jest.spyOn(metrics, 'buildMetrics');
+    metrics.latency.set('testEndpoint', [0, 0]);
     metrics.startTimer();
     jest.advanceTimersByTime(metrics.interval*1.5);
     expect(metrics.buildMetrics).toHaveBeenCalledTimes(1);
