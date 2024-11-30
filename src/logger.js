@@ -20,7 +20,7 @@ class Logger {
                 path: req.baseUrl + req.path,
                 authHeader: authHeaders,
                 reqBody: JSON.stringify(req.body),
-                resStatus: res.statusCode,
+                status: res.statusCode,
                 resBody: JSON.stringify(res.body),
                 ip: req.ip
             };
