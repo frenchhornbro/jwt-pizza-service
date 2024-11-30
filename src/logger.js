@@ -3,6 +3,9 @@ const config = require('./config.js');
 class Logger {
     constructor() {
         this.verbose = false;
+        this.INFO = 'info';
+        this.WARN = 'warn';
+        this.ERROR = 'error';
     }
 
     // Handle requests and responses
@@ -33,8 +36,10 @@ class Logger {
         next();
     };
 
-    logServerEvent(serverEvent) {
-        const level = (serverEvent === 'close') ? 'error' : 'info';
+    logServerEvent(serverEvent, status=null) {
+        let level;
+        if (status) level = status;
+        else level = (serverEvent === 'close') ? this.ERROR : this.INFO;
         const type = 'server';
         const log = {server: serverEvent};
         const logEvent = [this.nowString(), JSON.stringify(log)];
@@ -65,7 +70,7 @@ class Logger {
     }
 
     logAuthTokenValidation(req, tokenIsValid) {
-        const level = (tokenIsValid) ? 'info' : 'warn';
+        const level = (tokenIsValid) ? this.INFO : this.ERROR;
         const type = 'authToken';
         const authTokenValidationData = {
             validAuthToken: tokenIsValid,
@@ -73,6 +78,17 @@ class Logger {
             reqPath: req.baseUrl + req.path
         };
         const logEvent = [this.nowString(), this.sanitizeData(authTokenValidationData)];
+        this.sendLogsToGrafana(level, type, logEvent);
+    }
+
+    async logDBQuery(functionName, queryStatus) {
+        const level = queryStatus;
+        const type = 'dbQuery';
+        const dbQueryData = {
+            dbFunction: functionName,
+            queryStatus: queryStatus
+        };
+        const logEvent = [this.nowString(), this.sanitizeData(dbQueryData)];
         this.sendLogsToGrafana(level, type, logEvent);
     }
 
@@ -85,9 +101,9 @@ class Logger {
     }
 
     statusToLogLevel(statusCode) {
-        if (statusCode >= 500) return 'error';
-        if (statusCode >= 400) return 'warn';
-        return 'info';
+        if (statusCode >= 500) return this.ERROR;
+        if (statusCode >= 400) return this.WARN;
+        return this.INFO;
     }
 
     sanitizeData(dataToSanitize) {

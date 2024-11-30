@@ -4,6 +4,7 @@ const config = require('../config.js');
 const { StatusCodeError } = require('../endpointHelper.js');
 const { Role } = require('../model/model.js');
 const dbModel = require('./dbModel.js');
+const logger = require('../logger.js');
 class DB {
   constructor() {
     this.initialized = this.initializeDatabase();
@@ -11,26 +12,38 @@ class DB {
 
   async getMenu() {
     const connection = await this.getConnection();
+    let logStatus = logger.INFO;
     try {
       const rows = await this.query(connection, `SELECT * FROM menu`);
+      logger.logDBQuery('getMenu', logger.INFO);
       return rows;
+    } catch (error) {
+      logStatus = logger.WARN;
+      throw error;
     } finally {
+      logger.logDBQuery('getMenu', logStatus);
       connection.end();
     }
   }
 
   async addMenuItem(item) {
     const connection = await this.getConnection();
+    let logStatus = logger.INFO;
     try {
       const addResult = await this.query(connection, `INSERT INTO menu (title, description, image, price) VALUES (?, ?, ?, ?)`, [item.title, item.description, item.image, item.price]);
       return { ...item, id: addResult.insertId };
+    } catch (error) {
+      logStatus = logger.WARN;
+      throw error;
     } finally {
+      logger.logDBQuery('addMenuItem', logStatus);
       connection.end();
     }
   }
 
   async addUser(user) {
     const connection = await this.getConnection();
+    let logStatus = logger.INFO;
     try {
       user.password = await bcrypt.hash(user.password, 10);
 
@@ -50,13 +63,18 @@ class DB {
         }
       }
       return { ...user, id: userId, password: undefined };
+    } catch (error) {
+      logStatus = logger.WARN;
+      throw error;
     } finally {
+      logger.logDBQuery('addUser', logStatus);
       connection.end();
     }
   }
 
   async getUser(email, password) {
     const connection = await this.getConnection();
+    let logStatus = logger.INFO;
     try {
       const userResult = await this.query(connection, `SELECT * FROM user WHERE email=?`, [email]);
       const user = userResult[0];
@@ -70,13 +88,18 @@ class DB {
       });
 
       return { ...user, roles: roles, password: undefined };
+    } catch (error) {
+      logStatus = logger.WARN;
+      throw error;
     } finally {
+      logger.logDBQuery('getUser', logStatus);
       connection.end();
     }
   }
 
   async updateUser(userId, email, password) {
     const connection = await this.getConnection();
+    let logStatus = logger.INFO;
     try {
       const params = [];
       if (password) {
@@ -92,7 +115,11 @@ class DB {
         return this.getUser(email, password);
       }
       return {message: 'nothing to change'};
+    } catch (error) {
+      logStatus = logger.WARN;
+      throw error;
     } finally {
+      logger.logDBQuery('updateUser', logStatus);
       connection.end();
     }
   }
@@ -100,9 +127,14 @@ class DB {
   async loginUser(userId, token) {
     token = this.getTokenSignature(token);
     const connection = await this.getConnection();
+    let logStatus = logger.INFO;
     try {
       await this.query(connection, `INSERT INTO auth (token, userId) VALUES (?, ?)`, [token, userId]);
+    } catch (error) {
+      logStatus = logger.WARN;
+      throw error;
     } finally {
+      logger.logDBQuery('loginUser', logStatus);
       connection.end();
     }
   }
@@ -110,10 +142,15 @@ class DB {
   async isLoggedIn(token) {
     token = this.getTokenSignature(token);
     const connection = await this.getConnection();
+    let logStatus = logger.INFO;
     try {
       const authResult = await this.query(connection, `SELECT userId FROM auth WHERE token=?`, [token]);
       return authResult.length > 0;
+    } catch (error) {
+      logStatus = logger.WARN;
+      throw error;
     } finally {
+      logger.logDBQuery('isLoggedIn', logStatus);
       connection.end();
     }
   }
@@ -121,15 +158,21 @@ class DB {
   async logoutUser(token) {
     token = this.getTokenSignature(token);
     const connection = await this.getConnection();
+    let logStatus = logger.INFO;
     try {
       await this.query(connection, `DELETE FROM auth WHERE token=?`, [token]);
+    } catch (error) {
+      logStatus = logger.WARN;
+      throw error;
     } finally {
+      logger.logDBQuery('logoutUser', logStatus);
       connection.end();
     }
   }
 
   async getOrders(user, page = 1) {
     const connection = await this.getConnection();
+    let logStatus = logger.INFO;
     try {
       const offset = this.getOffset(page, config.db.listPerPage);
       const orders = await this.query(connection, `SELECT id, franchiseId, storeId, date FROM dinerOrder WHERE dinerId=? LIMIT ${offset},${config.db.listPerPage}`, [user.id]);
@@ -138,13 +181,18 @@ class DB {
         order.items = items;
       }
       return { dinerId: user.id, orders: orders, page };
+    } catch (error) {
+      logStatus = logger.WARN;
+      throw error;
     } finally {
+      logger.logDBQuery('getOrders', logStatus);
       connection.end();
     }
   }
 
   async addDinerOrder(user, order) {
     const connection = await this.getConnection();
+    let logStatus = logger.INFO;
     try {
       const orderResult = await this.query(connection, `INSERT INTO dinerOrder (dinerId, franchiseId, storeId, date) VALUES (?, ?, ?, now())`, [user.id, order.franchiseId, order.storeId]);
       const orderId = orderResult.insertId;
@@ -153,13 +201,18 @@ class DB {
         await this.query(connection, `INSERT INTO orderItem (orderId, menuId, description, price) VALUES (?, ?, ?, ?)`, [orderId, menuId, item.description, item.price]);
       }
       return { ...order, id: orderId };
+    } catch (error) {
+      logStatus = logger.WARN;
+      throw error;
     } finally {
+      logger.logDBQuery('addDinerOrder', logStatus);
       connection.end();
     }
   }
 
   async createFranchise(franchise) {
     const connection = await this.getConnection();
+    let logStatus = logger.INFO;
     try {
       for (const admin of franchise.admins) {
         const adminUser = await this.query(connection, `SELECT id, name FROM user WHERE email=?`, [admin.email]);
@@ -178,13 +231,18 @@ class DB {
       }
 
       return franchise;
+    } catch (error) {
+      logStatus = logger.WARN;
+      throw error;
     } finally {
+      logger.logDBQuery('createFranchise', logStatus);
       connection.end();
     }
   }
 
   async deleteFranchise(franchiseId) {
     const connection = await this.getConnection();
+    let logStatus = logger.INFO;
     try {
       await connection.beginTransaction();
       try {
@@ -196,13 +254,18 @@ class DB {
         await connection.rollback();
         throw new StatusCodeError('unable to delete franchise', 500);
       }
+    } catch (error) {
+      logStatus = logger.WARN;
+      throw error;
     } finally {
+      logger.logDBQuery('deleteFranchise', logStatus);
       connection.end();
     }
   }
 
   async getFranchises(authUser) {
     const connection = await this.getConnection();
+    let logStatus = logger.INFO;
     try {
       const franchises = await this.query(connection, `SELECT id, name FROM franchise`);
       for (const franchise of franchises) {
@@ -213,13 +276,18 @@ class DB {
         }
       }
       return franchises;
+    } catch (error) {
+      logStatus = logger.WARN;
+      throw error;
     } finally {
+      logger.logDBQuery('getFranchises', logStatus);
       connection.end();
     }
   }
 
   async getUserFranchises(userId) {
     const connection = await this.getConnection();
+    let logStatus = logger.INFO;
     try {
       let franchiseIds = await this.query(connection, `SELECT objectId FROM userRole WHERE role='franchisee' AND userId=?`, [userId]);
       if (franchiseIds.length === 0) {
@@ -232,13 +300,18 @@ class DB {
         await this.getFranchise(franchise);
       }
       return franchises;
+    } catch (error) {
+      logStatus = logger.WARN;
+      throw error;
     } finally {
+      logger.logDBQuery('getUserFranchises', logStatus);
       connection.end();
     }
   }
 
   async getFranchise(franchise) {
     const connection = await this.getConnection();
+    let logStatus = logger.INFO;
     try {
       franchise.admins = await this.query(connection, `SELECT u.id, u.name, u.email FROM userRole AS ur JOIN user AS u ON u.id=ur.userId WHERE ur.objectId=? AND ur.role='franchisee'`, [franchise.id]);
 
@@ -249,26 +322,40 @@ class DB {
       );
 
       return franchise;
+    } catch (error) {
+      logStatus = logger.WARN;
+      throw error;
     } finally {
+      logger.logDBQuery('getFranchise', logStatus);
       connection.end();
     }
   }
 
   async createStore(franchiseId, store) {
     const connection = await this.getConnection();
+    let logStatus = logger.INFO;
     try {
       const insertResult = await this.query(connection, `INSERT INTO store (franchiseId, name) VALUES (?, ?)`, [franchiseId, store.name]);
       return { id: insertResult.insertId, franchiseId, name: store.name };
+    } catch (error) {
+      logStatus = logger.WARN;
+      throw error;
     } finally {
+      logger.logDBQuery('createStore', logStatus);
       connection.end();
     }
   }
 
   async deleteStore(franchiseId, storeId) {
     const connection = await this.getConnection();
+    let logStatus = logger.INFO;
     try {
       await this.query(connection, `DELETE FROM store WHERE franchiseId=? AND id=?`, [franchiseId, storeId]);
+    } catch (error) {
+      logStatus = logger.WARN;
+      throw error;
     } finally {
+      logger.logDBQuery('deleteStore', logStatus);
       connection.end();
     }
   }
@@ -319,6 +406,7 @@ class DB {
   }
 
   async initializeDatabase() {
+    let logStatus = logger.INFO;
     try {
       const connection = await this._getConnection(false);
       try {
@@ -341,6 +429,9 @@ class DB {
       }
     } catch (err) {
       console.error(JSON.stringify({ message: 'Error initializing database', exception: err.message, connection: config.db.connection }));
+      logStatus = logger.ERROR;
+    } finally {
+      logger.logServerEvent('initializeDatabase', logStatus);
     }
   }
 
