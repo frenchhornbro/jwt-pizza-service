@@ -3,9 +3,9 @@ const config = require('./config.js');
 class Logger {
     constructor() {
         this.verbose = false;
-        this.INFO = 'info';
-        this.WARN = 'warn';
-        this.ERROR = 'error';
+        this.INFO = 'INFO';
+        this.WARN = 'WARN';
+        this.ERROR = 'ERROR';
     }
 
     // Handle requests and responses
@@ -26,9 +26,6 @@ class Logger {
             };
             const values = [this.nowString(), this.sanitizeData(logData)];
             this.sendLogsToGrafana(this.statusToLogLevel(res.statusCode), 'http', values);
-
-            if (logData.path === '/api/auth/' && logData.method === 'PUT') this.logLoginAttempt(req, res);
-            else if (logData.path === '/api/order/' && logData.method === 'POST') this.logFactoryReq(req, res);
 
             // Restore previous send() functionality and call send()
             res.send = send;

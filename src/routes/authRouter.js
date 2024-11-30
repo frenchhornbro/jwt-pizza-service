@@ -102,12 +102,14 @@ authRouter.put(
       const auth = await setAuth(user);
       res.json({ user: user, token: auth });
       metrics.handleLoginMetrics(true);
-      metrics.reportLatency('login', latencyStart, performance.now());
     }
     catch {
       metrics.handleLoginMetrics(false);
-      metrics.reportLatency('login', latencyStart, performance.now());
       return res.status(401).json({ message: 'incorrect credentials' });
+    }
+    finally {
+      metrics.reportLatency('login', latencyStart, performance.now());
+      logger.logLoginAttempt(req, res);
     }
   })
 );

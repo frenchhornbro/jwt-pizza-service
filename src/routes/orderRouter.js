@@ -4,6 +4,7 @@ const { Role, DB } = require('../database/database.js');
 const { authRouter } = require('./authRouter.js');
 const { asyncHandler, StatusCodeError } = require('../endpointHelper.js');
 const metrics = require('../metrics.js');
+const logger = require('../logger.js');
 
 const orderRouter = express.Router();
 let latencyStart = null;
@@ -108,6 +109,7 @@ orderRouter.post(
       metrics.handlePizzaFailureMetrics();
       metrics.reportLatency('createOrder', latencyStart, performance.now());
     }
+    logger.logFactoryReq(req, res);
   })
 );
 
