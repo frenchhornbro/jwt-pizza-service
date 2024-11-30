@@ -18,30 +18,38 @@ class Metrics {
         this.numactiveUsers = 0;
         this.latency = new Map(); // endpointName: [time, numRequests]
         
+        this.startTimer();
+    }
+
+    startTimer() {
         const timer = setInterval(() => {
-            let metricsStr = "";
-            metricsStr += this.buildPrometheusStr('request', 'ALL', 'total', this.totalRequests);
-            metricsStr += this.buildPrometheusStr('request', 'GET', 'get', this.totalGet);
-            metricsStr += this.buildPrometheusStr('request', 'POST', 'post', this.totalPost);
-            metricsStr += this.buildPrometheusStr('request', 'PUT', 'put', this.totalPut);
-            metricsStr += this.buildPrometheusStr('request', 'DELETE', 'delete', this.totalDelete);
-            metricsStr += this.buildPrometheusStr('cpu', '-', 'CPU', this.getCpuUsagePercentage());
-            metricsStr += this.buildPrometheusStr('memory', '-', 'MEMORY', this.getMemoryUsagePercentage());
-            metricsStr += this.buildPrometheusStr('pizza', '-', 'PURCHASES', this.totalPizzasSold);
-            metricsStr += this.buildPrometheusStr('pizza', '-', 'FAILURES', this.getPizzaFailures());
-            metricsStr += this.buildPrometheusStr('revenue', '-', 'REVENUE', this.totalRevenue);
-            metricsStr += this.buildPrometheusStr('auth', '-', 'SUCCESS', this.totalAuthSuccess);
-            metricsStr += this.buildPrometheusStr('auth', '-', 'FAIL', this.totalAuthFail);
-            metricsStr += this.buildPrometheusStr('users', '-', 'ACTIVE', this.numactiveUsers);
-            for (const [endpointName, timeArr] of this.latency) {
-                const reportedTime = (timeArr[1] === 0) ? 0 : timeArr[0] / timeArr[1];
-                metricsStr += this.buildPrometheusStr('latency', '-', endpointName, reportedTime);
-                this.latency.set(endpointName, [0, 0]);
-            }
-            this.sendToGrafana(metricsStr);
+            this.buildMetrics();
         }, this.interval);
         timer.unref();
     }
+
+    buildMetrics() {
+        let metricsStr = "";
+        metricsStr += this.buildPrometheusStr('request', 'ALL', 'total', this.totalRequests);
+        metricsStr += this.buildPrometheusStr('request', 'GET', 'get', this.totalGet);
+        metricsStr += this.buildPrometheusStr('request', 'POST', 'post', this.totalPost);
+        metricsStr += this.buildPrometheusStr('request', 'PUT', 'put', this.totalPut);
+        metricsStr += this.buildPrometheusStr('request', 'DELETE', 'delete', this.totalDelete);
+        metricsStr += this.buildPrometheusStr('cpu', '-', 'CPU', this.getCpuUsagePercentage());
+        metricsStr += this.buildPrometheusStr('memory', '-', 'MEMORY', this.getMemoryUsagePercentage());
+        metricsStr += this.buildPrometheusStr('pizza', '-', 'PURCHASES', this.totalPizzasSold);
+        metricsStr += this.buildPrometheusStr('pizza', '-', 'FAILURES', this.getPizzaFailures());
+        metricsStr += this.buildPrometheusStr('revenue', '-', 'REVENUE', this.totalRevenue);
+        metricsStr += this.buildPrometheusStr('auth', '-', 'SUCCESS', this.totalAuthSuccess);
+        metricsStr += this.buildPrometheusStr('auth', '-', 'FAIL', this.totalAuthFail);
+        metricsStr += this.buildPrometheusStr('users', '-', 'ACTIVE', this.numactiveUsers);
+        for (const [endpointName, timeArr] of this.latency) {
+            const reportedTime = (timeArr[1] === 0) ? 0 : timeArr[0] / timeArr[1];
+            metricsStr += this.buildPrometheusStr('latency', '-', endpointName, reportedTime);
+            this.latency.set(endpointName, [0, 0]);
+        }
+        this.sendToGrafana(metricsStr);
+    };
 
     requestTracker = async (req, res, next) => {
         let method = req.method;
@@ -52,7 +60,7 @@ class Metrics {
     reportLatency = (endpointName, start, end) => {
         if (this.latency.get(endpointName) === undefined) this.latency.set(endpointName, [0, 0]);
         this.latency.set(endpointName, [this.latency.get(endpointName)[0]+end-start, this.latency.get(endpointName)[1]+1]);
-    }
+    };
 
     handlePizzaSuccessMetrics = (order) => {
         try {
