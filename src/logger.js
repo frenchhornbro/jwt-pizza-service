@@ -16,12 +16,13 @@ class Logger {
             // Construct log and append it to the array of logs
             const authHeaders = (req.headers.authorization) ? req.headers.authorization : null;
             const logData = {
-                reqMethod: req.method,
-                reqPath: req.baseUrl + req.path,
-                reqAuthHeader: authHeaders,
+                method: req.method,
+                path: req.baseUrl + req.path,
+                authHeader: authHeaders,
                 reqBody: JSON.stringify(req.body),
                 resStatus: res.statusCode,
-                resBody: JSON.stringify(res.body)
+                resBody: JSON.stringify(res.body),
+                ip: req.ip
             };
             const values = [this.nowString(), this.sanitizeData(logData)];
             this.sendLogsToGrafana(this.statusToLogLevel(res.statusCode), 'http', values);
@@ -51,7 +52,8 @@ class Logger {
         const type = 'auth';
         const loginAttemptData = {
             userEmail: req.body.email,
-            loginStatus: res.statusCode
+            status: res.statusCode,
+            ip: req.ip
         };
         const logEvent = [this.nowString(), this.sanitizeData(loginAttemptData)];
         this.sendLogsToGrafana(level, type, logEvent);
@@ -63,7 +65,8 @@ class Logger {
         const userEmail =  (req && req.user && req.user.email) ? req.user.email : null;
         const factoryReqData = {
             userEmail: userEmail,
-            factoryStatus: res.statusCode
+            status: res.statusCode,
+            ip: req.ip
         };
         const logEvent = [this.nowString(), this.sanitizeData(factoryReqData)];
         this.sendLogsToGrafana(level, type, logEvent);
@@ -73,9 +76,10 @@ class Logger {
         const level = (tokenIsValid) ? this.INFO : this.ERROR;
         const type = 'authToken';
         const authTokenValidationData = {
-            validAuthToken: tokenIsValid,
-            reqMethod: req.method,
-            reqPath: req.baseUrl + req.path
+            valid: tokenIsValid,
+            method: req.method,
+            path: req.baseUrl + req.path,
+            ip: req.ip
         };
         const logEvent = [this.nowString(), this.sanitizeData(authTokenValidationData)];
         this.sendLogsToGrafana(level, type, logEvent);
@@ -85,16 +89,25 @@ class Logger {
         const level = queryStatus;
         const type = 'dbQuery';
         const dbQueryData = {
-            dbFunction: functionName,
-            queryStatus: queryStatus
+            functionName: functionName,
+            status: queryStatus
         };
         const logEvent = [this.nowString(), this.sanitizeData(dbQueryData)];
         this.sendLogsToGrafana(level, type, logEvent);
     }
 
-    // logError(endpointOrigin, errorNum) {
-        
-    // }
+    logError(req, status) {
+        const level = this.statusToLogLevel(status);
+        const type = 'error';
+        const errorData = {
+            method: req.method,
+            path: req.baseUrl + req.path,
+            status: status,
+            ip: req.ip
+        };
+        const logEvent = [this.nowString(), this.sanitizeData(errorData)];
+        this.sendLogsToGrafana(level, type, logEvent);
+    }
 
     nowString() {
         return (Math.floor(Date.now()) * 1000000).toString(); // Loki reads time in nanoseconds, not milliseconds

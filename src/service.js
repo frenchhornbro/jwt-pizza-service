@@ -45,11 +45,13 @@ app.use('*', (req, res) => {
   res.status(404).json({
     message: 'unknown endpoint',
   });
+  logger.logError(req, 404);
 });
 
 // Default error handler for all exceptions and errors.
 app.use((err, req, res, next) => {
   res.status(err.statusCode ?? 500).json({ message: err.message, stack: err.stack });
+  logger.logError(req, err.statusCode ?? 500);
   next();
 });
 
