@@ -5,7 +5,7 @@ testCurlOutput() {
     exit 1
   fi
 }
-host=http://localhost:3000
+host=https://pizza-service.myfinancialbudgie.click
 while true
  do
    response=$(curl -s -X PUT $host/api/auth -d '{"email":"d@jwt.com", "password":"diner"}' -H 'Content-Type: application/json');

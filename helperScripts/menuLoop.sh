@@ -5,7 +5,7 @@ testCurlOutput() {
     exit 1
   fi
 }
-host=http://localhost:3000
+host=https://pizza-service.myfinancialbudgie.click
 while true
  do
   curl -s $host/api/order/menu;
