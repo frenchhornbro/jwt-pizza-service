@@ -85,23 +85,17 @@ authRouter.post(
       metrics.reportLatency('register', latencyStart, performance.now());
       return res.status(400).json({ message: 'name, email, and password are required' });
     }
-    let userExists = true;
     try {
       await DB.getUser(email, password);
     }
     catch (err) {
       if (err.statusCode === 404) {
-        if (err.message === "unknown user") userExists = false;
-        else {
-          err.statusCode = 401;
-          throw err;
+        if (err.message !== "unknown user") {
+          metrics.reportLatency('register', latencyStart, performance.now());
+          return res.status(401).json({ message: 'email is already being used' });
         }
       }
       else throw err;
-    }
-    if (userExists) {
-      metrics.reportLatency('register', latencyStart, performance.now());
-      return res.status(401).json({ message: 'user is already taken' });
     }
     const user = await DB.addUser({ name, email, password, roles: [{ role: Role.Diner }] });
     const auth = await setAuth(user);
