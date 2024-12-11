@@ -69,3 +69,22 @@ test('docs', async() => {
     expect(res.status).toBe(200);
     expect(res.body.version).toMatch(/\d+\.\d+/);
 });
+
+test('cantOverwrite', async() => {
+    const email = `${randomName()}@random.com`;
+    const newUser = {
+        name: randomName(),
+        email: email,
+        password: "password1"
+    };
+    let res = await request(app).post('/api/auth').send(newUser);
+    expect(res.status).toBe(200);
+
+    const overWriteUser = {
+        name: 'hacker',
+        email: email,
+        password: 'hackerPassword'
+    }
+    res = await request(app).post('/api/auth').send(overWriteUser);
+    expect(res.status).toBe(401);
+})
